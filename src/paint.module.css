@@ -1,0 +1,11 @@
+.container{
+    display: flex;
+    flex-direction: column;
+    background-color: black;
+    min-width: 100vw;
+    min-height: 100vh;
+    padding: 20px 40px;
+    align-items: center;
+    justify-content: center;
+    row-gap: 20px;
+}
