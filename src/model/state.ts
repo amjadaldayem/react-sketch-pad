@@ -3,6 +3,7 @@ import Line from "./line";
 import React from "react";
 
 interface StateI {
+    canDraw: boolean,
     firstNewLinePoint: IPoint | null;
     secondNewLinePoint: IPoint | null ;
     startDraw: boolean;

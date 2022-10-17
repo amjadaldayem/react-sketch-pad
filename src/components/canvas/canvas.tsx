@@ -6,6 +6,7 @@ import StateI from "../../model/state";
 
 export default class Canvas extends React.Component{
     state:StateI = {
+        canDraw: true,
         firstNewLinePoint: null,
         secondNewLinePoint: null,
         startDraw: false,
@@ -21,13 +22,13 @@ export default class Canvas extends React.Component{
     componentDidUpdate(prevState: StateI) {
         const createNewLine = this.state.firstNewLinePoint && this.state.secondNewLinePoint && this.state.startDraw;
         if(this.state.secondNewLinePoint !== prevState.secondNewLinePoint){
-            if(createNewLine){
+            if(createNewLine && this.state.canDraw){
                 this.state.context?.clearRect(0,0,600,600);
                 this.renderStackLines()
                 this.renderLine(this.state.firstNewLinePoint as IPoint,this.state.secondNewLinePoint as IPoint);
                 this.renderPointsOfIntersection([...this.state.lines,[this.state.firstNewLinePoint as IPoint,this.state.secondNewLinePoint as IPoint]])
             }
-            if(this.state.endDraw){
+            if(this.state.endDraw && this.state.canDraw){
                 this.state.lines = [...this.state.lines, [this.state.firstNewLinePoint as IPoint, this.state.secondNewLinePoint as IPoint]]
                 this.state.firstNewLinePoint = null;
                 this.state.endDraw = false;
@@ -74,9 +75,9 @@ export default class Canvas extends React.Component{
     }
     renderLine(point1:IPoint,point2:IPoint){
         this.state.context?.beginPath()
-        this.state.context?.moveTo(point1.x,point1.y);
-        this.state.context?.lineTo(point2.x,point2.y);
-        (this.state.context as  CanvasRenderingContext2D).strokeStyle = 'white';
+        this.state.context?.moveTo(point1.x, point1.y);
+        this.state.context?.lineTo(point2.x, point2.y);
+        (this.state.context as CanvasRenderingContext2D).strokeStyle = 'white';
         this.state.context?.stroke();
     }
     renderStackLines(){
@@ -94,7 +95,19 @@ export default class Canvas extends React.Component{
         this.renderPointsOfIntersection(this.state.lines);
         this.setState({...this.state,startDraw: false,firstNewLinePoint: null})
     }
+    endReset(interval:NodeJS.Timer){
+        clearInterval(interval);
+        this.setState({
+            canDraw: true,
+            firstNewLinePoint: null,
+            secondNewLinePoint: null,
+            startDraw: false,
+            endDraw: false,
+            lines: [],
+        });
+    }
     onCollapseLines(){
+        this.setState({...this.state,canDraw: false})
         function getMiddlePoint(line:Line):IPoint{
             return {
                 x: (line[0].x + line[1].x)/2,
@@ -121,13 +134,12 @@ export default class Canvas extends React.Component{
                             return setHalfSecondPoint;
                         })
                         return Math.abs(data[0].x - data[1].x) < 1 ? null : data;
-                        // return data;
                     })
                     .filter(line => line !== null)
             })
             this.renderStackLines();
             this.renderPointsOfIntersection(this.state.lines);
-            !this.state.lines.length && clearInterval(reset);
+            !this.state.lines.length && this.endReset(reset);
         } ,50)
     }
     render() {
