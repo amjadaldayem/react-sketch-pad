@@ -7,31 +7,34 @@ import StateI from "../../model/state";
 export default class Canvas extends React.Component{
     state:StateI = {
         canDraw: true,
+        context: null,
+        canvasRef:  null,
+        endDraw: false,
+        lines: [],
         firstNewLinePoint: null,
         secondNewLinePoint: null,
         startDraw: false,
-        endDraw: false,
-        lines: [],
-        canvasRef:  null,
-        context: null,
     }
     constructor(props:never) {
         super(props);
         this.state.canvasRef = React.createRef();
     }
     componentDidUpdate(prevState: StateI) {
-        const createNewLine = this.state.firstNewLinePoint && this.state.secondNewLinePoint && this.state.startDraw;
-        if(this.state.secondNewLinePoint !== prevState.secondNewLinePoint){
-            if(createNewLine && this.state.canDraw){
-                this.state.context?.clearRect(0,0,600,600);
-                this.renderStackLines()
-                this.renderLine(this.state.firstNewLinePoint as IPoint,this.state.secondNewLinePoint as IPoint);
-                this.renderPointsOfIntersection([...this.state.lines,[this.state.firstNewLinePoint as IPoint,this.state.secondNewLinePoint as IPoint]])
-            }
-            if(this.state.endDraw && this.state.canDraw){
-                this.state.lines = [...this.state.lines, [this.state.firstNewLinePoint as IPoint, this.state.secondNewLinePoint as IPoint]]
-                this.state.firstNewLinePoint = null;
-                this.state.endDraw = false;
+        const update = (this.state.secondNewLinePoint !== prevState.secondNewLinePoint) && this.state.canDraw;
+        if(update){
+            const createNewLine = this.state.firstNewLinePoint && this.state.secondNewLinePoint && this.state.startDraw ;
+            switch (true){
+                case createNewLine:
+                    this.state.context?.clearRect(0,0,600,600);
+                    this.renderStackLines()
+                    this.renderLine(this.state.firstNewLinePoint as IPoint,this.state.secondNewLinePoint as IPoint);
+                    this.renderPointsOfIntersection([...this.state.lines,[this.state.firstNewLinePoint as IPoint,this.state.secondNewLinePoint as IPoint]])
+                break;
+                case this.state.endDraw:
+                    this.state.lines = [...this.state.lines, [this.state.firstNewLinePoint as IPoint, this.state.secondNewLinePoint as IPoint]]
+                    this.state.firstNewLinePoint = null;
+                    this.state.endDraw = false;
+                break;
             }
         }
     }
@@ -47,8 +50,9 @@ export default class Canvas extends React.Component{
         const ta:number = da / d;
         const tb:number = db/ d;
 
-        if (ta >= 0 && ta <= 1 && tb >= 0 && tb <= 1)
-        {
+        const pointExists = ta >= 0 && ta <= 1 && tb >= 0 && tb <= 1;
+
+        if (pointExists) {
             const dx:number = p1.x + ta * (p2.x - p1.x);
             const dy:number = p1.y + ta * (p2.y - p1.y);
 
@@ -59,16 +63,14 @@ export default class Canvas extends React.Component{
     renderPointsOfIntersection(lines:Line[]):void{
         lines.forEach((line,index) => {
             lines.forEach((validateLine,validateIndex) =>{
-                if(index !== validateIndex){
-                    const data = this.getPointOfIntersection(line[0],line[1],validateLine[0],validateLine[1])
-                    if(data){
-                        this.state.context?.beginPath();
-                        this.state.context?.arc(data.x,data.y,5,0,2 * Math.PI);
-                        (this.state.context as  CanvasRenderingContext2D).strokeStyle = 'white';
-                        (this.state.context as  CanvasRenderingContext2D).fillStyle = '#0085ff';
-                        this.state.context?.fill()
-                        this.state.context?.stroke();
-                    }
+                const point = this.getPointOfIntersection(line[0],line[1],validateLine[0],validateLine[1]);
+                if((index !== validateIndex) && point){
+                    this.state.context?.beginPath();
+                    this.state.context?.arc(point.x,point.y,5,0,2 * Math.PI);
+                    (this.state.context as  CanvasRenderingContext2D).strokeStyle = 'white';
+                    (this.state.context as  CanvasRenderingContext2D).fillStyle = '#0085ff';
+                    this.state.context?.fill()
+                    this.state.context?.stroke();
                 }
             })
         })
@@ -100,7 +102,6 @@ export default class Canvas extends React.Component{
         this.setState({
             canDraw: true,
             firstNewLinePoint: null,
-            secondNewLinePoint: null,
             startDraw: false,
             endDraw: false,
             lines: [],
@@ -162,7 +163,7 @@ export default class Canvas extends React.Component{
                     height={400}
                 />
                 <button
-                    onClick={() => this.onCollapseLines()}
+                    onClick={() => !this.state.startDraw && this.onCollapseLines()}
                     className={styles.button}
                     children={'Collapse lines'}
                 />
